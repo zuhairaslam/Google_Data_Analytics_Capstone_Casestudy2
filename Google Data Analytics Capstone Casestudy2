@@ -87,9 +87,9 @@ After this, I would need to import the datasets into RStudio using read.csv(). I
 fitbit data is imported and read as csv files. 
 
 ```{r csv data collection, echo=TRUE, eval=FALSE}
-daily_activity <- read.csv("Fitbit Data/dailyActivity_merged.csv")
-daily_sleep <- read.csv("Fitbit Data/sleepDay_merged.csv")
-weight_log <- read.csv("Fitbit Data/weightLogInfo_merged.csv")
+daily_activity <- read.csv("Fitbit-Data/dailyActivity_merged.csv")
+daily_sleep <- read.csv("Fitbit-Data/sleepDay_merged.csv")
+weight_log <- read.csv("Fitbit-Data/weightLogInfo_merged.csv")
 ```
 
 Let's inspect our data to see if there are any errors with formatting by using str()
