@@ -1,0 +1,430 @@
+---
+title: "Google Data Analytics Capstone Casestudy 2"
+author: "Zuhair Aslam"
+date: "2023-07-01"
+output: html_document
+---
+### Introdution
+
+My 2nd case study relates to Bellabeat company's fitbit fitness tracker data to work on for the capstone project of the Google Data Analytics certificate. For this case study, I will perform real-world tasks of a junior data analyst for Bellabeat, a high-tech manufacturer of health-focused products for women.
+
+To answer key business questions, I will follow the six steps of the data analysis process : 
+
+* Ask
+* Prepare
+* Process
+* Analyze
+* Share 
+* Act
+
+### The scenario
+
+I am as a junior data analyst working on the marketing analyst team at Bellabeat, a high-tech manufacturer of health-focused products for women. Bellabeat is a successful small company, but they have the potential to become a larger player in the global smart device market. Urška Sršen, cofounder and Chief Creative Officer of Bellabeat, believes that analyzing smart device fitness data could help unlock new growth opportunities for the company. You have been asked to focus on one of Bellabeat’s products and analyze smart device data to gain insight into how consumers are using their smart devices. The insights you discover will then help guide marketing strategy for the company. You will present your analysis to the Bellabeat executive team along with your high-level recommendations for Bellabeat’s marketing strategy.
+
+Characters and products
+### Characters
+
+* Urška Sršen: Bellabeat’s cofounder and Chief Creative Officer
+
+* Sando Mur: Mathematician and Bellabeat’s cofounder; key member of the Bellabeat executive team
+
+*  Bellabeat marketing analytics team: A team of data analysts responsible for collecting, analyzing, and reporting data that helps guide Bellabeat’s marketing strategy. You joined this team six months ago and have been busy learning about Bellabeat’’s mission and business goals — as well as how you, as a junior data analyst, can help Bellabeat achieve them.
+
+### Products
+
+* Bellabeat app: The Bellabeat app provides users with health data related to their activity, sleep, stress, menstrual cycle, and mindfulness habits. This data can help users better understand their current habits and make healthy decisions. The Bellabeat app connects to their line of smart wellness products.
+
+* Leaf: Bellabeat’s classic wellness tracker can be worn as a bracelet, necklace, or clip. The Leaf tracker connects to the Bellabeat app to track activity, sleep, and stress.
+
+* Time: This wellness watch combines the timeless look of a classic timepiece with smart technology to track user activity, sleep, and stress. The Time watch connects to the Bellabeat app to provide you with insights into your daily wellness.
+
+* Spring: This is a water bottle that tracks daily water intake using smart technology to ensure that you are appropriately hydrated throughout the day. The Spring bottle connects to the Bellabeat app to track your hydration levels.
+
+* Bellabeat membership: Bellabeat also offers a subscription-based membership program for users. Membership gives users 24/7 access to fully personalized guidance on nutrition, activity, sleep, health and beauty, and mindfulness based on their lifestyle and goals
+
+### The Ask phase
+
+Urška Sršen asks me to analyze smart device usage data in order to gain insight into how consumers use non-Bellabeat smart devices. She wants me to select one Bellabeat product to apply these insights to my presentation. 
+
+These questions will guide your analysis:
+
+Q1: What are some trends in smart device usage?
+Q2: How could these trends apply to Bellabeat customers?
+Q3: How could these trends help influence Bellabeat marketing strategy?
+
+### The Prepare phase
+
+I will be using Fitbit Fitness Tracker [Data](https://www.kaggle.com/arashnic/fitbit) which was made available by [Mobius] (https://www.kaggle.com/arashnic) that contains personal fitness tracker from thirty Fitbit users who consented to the submission of personal tracker data, which includes minute-level output for:
+
+* Physical activity
+* Heart rate
+* Sleep monitoring
+
+It also includes information about daily activity, steps, and heart rate that can be used to explore user habits.
+
+Since the files are already grouped in a folder, there’s no need to organize them. The names of the files are also fairly easy to recognize given the context of the data, so we will not be modifying them as well.
+
+### The Process Phase
+
+Lets load install and load the necessary packages required for this process which would be: Tidyverse, Janitor, Lubridate & Skimr
+
+``` {r packages installation, echo=TRUE, eval=TRUE}
+#Installing the packages
+install.packages('tidyverse')
+install.packages('janitor')
+install.packages('lubridate')
+install.packages('skimr')
+#Loading the packages
+library(tidyverse)
+library(janitor)
+library(lubridate)
+library(skimr)
+```
+
+After this, I would need to import the datasets into RStudio using read.csv(). I will also be making slight name changes as well
+
+#### Importing data 
+fitbit data is imported and read as csv files. 
+
+```{r csv data collection, echo=TRUE, eval=FALSE}
+daily_activity <- read.csv("Fitbit Data/dailyActivity_merged.csv")
+daily_sleep <- read.csv("Fitbit Data/sleepDay_merged.csv")
+weight_log <- read.csv("Fitbit Data/weightLogInfo_merged.csv")
+```
+
+Let's inspect our data to see if there are any errors with formatting by using str()
+
+```{r colname inspection, echo=TRUE, eval=TRUE}
+str(daily_activity)
+str(daily_sleep)
+str(weight_log)
+```
+After a brief view of the output, there are a few issues that we need to address:
+
+* The naming of the column names (camelCase)
+* daily_activity$ActivityDate — Is formatted as CHR not as a date format
+* daily_sleep$SleepDay — Is formatted as CHR not as a date format
+* weight_log$Date — Is formatted as CHR not as a date format
+* weight_log$IsManualReport is formated as CHR not logical (for boolean values)
+
+To clean the column names, we would use clean_names()
+
+```{r clean names, echo=TRUE, eval=TRUE}
+daily_activity <- clean_names(daily_activity)
+daily_sleep <- clean_names(daily_sleep)
+weight_log <- clean_names(weight_log)
+```
+
+Lets also format daily_activity$ActivityDate, daily_sleep$SleepDay, weight_log$Date into the proper date format. using as.Date() & as.POSIXct()
+
+```{r changing date format, echo=TRUE, eval=TRUE}
+#We formatted daily_sleep$sleep_day as .Date instead of .POSIXct as all the times were all identically 12am and does not bring meaningful information
+
+daily_activity$activity_date <- as.Date(daily_activity$activity_date,'%m/%d/%y')
+daily_sleep$sleep_day <- as.Date(daily_sleep$sleep_day, '%m/%d/%y')
+```
+
+For weight_log$date, it's a little tricky because if you look closely, there’s the PM indicator at the end. POSIX.ct does not recognize this and will return all values as NA, so we will need to use parse_date_time from Lubridate.
+
+```{r changing date format in detail, echo=TRUE, eval=TRUE}
+weight_log$date <- parse_date_time(weight_log$date, '%m/%d/%y %H:%M:%S %p')
+str(weight_log)
+```
+
+And to format weight_log$is_manual_report to a logical format, we will use as.logical()
+
+```{r applying logical format to weight_log, echo=TRUE, eval=TRUE}
+#Similar to other as.formattype syntaxes
+
+weight_log$is_manual_report <- as.logical(weight_log$is_manual_report)
+str(weight_log)
+```
+
+After a quick look at our current data, let's add a day of the week, sedentary hours & total active hours column for further analysis in daily_activity. I will not be adding a month column since the dataset only provides information collected within a month.
+
+Let's also add new columns which convert the current minutes of collection to hours and round it using round() in daily_sleep. I will also be adding a column to indicate the time taken to fall asleep in daily_sleep as well.
+
+
+```{r rounding off time, echo=TRUE, eval=TRUE}
+#Round basically rounds off a number, the syntax would be = round(object, digits = x)
+
+daily_activity$day_of_week <- wday(daily_activity$activity_date, label = T, abbr = T)
+daily_activity$total_active_hours = round((daily_activity$very_active_minutes + daily_activity$fairly_active_minutes + daily_activity$lightly_active_minutes)/60, digits = 2)
+daily_activity$sedentary_hours = round((daily_activity$sedentary_minutes)/60, digits = 2)
+
+daily_sleep$hours_in_bed = round((daily_sleep$total_time_in_bed)/60, digits = 2)
+daily_sleep$hours_asleep = round((daily_sleep$total_minutes_asleep)/60, digits = 2)
+daily_sleep$time_taken_to_sleep = (daily_sleep$total_time_in_bed - daily_sleep$total_minutes_asleep)
+```
+
+I will also be removing weight_log$fat, as it has little to no context and would not be helpful during the analysis phase by using select(-c())
+
+```{r removing fat from weight log, echo=TRUE, eval=TRUE}
+#Select(-c(column_name)) removes a column from a dataframe
+
+weight_log <- weight_log %>% 
+  select(-c(fat))
+  
+str(weight_log)
+```
+
+Lastly, I will also be adding a new column in weight_log called bmi2 which will indicate whether the user is underweight, healthy, or overweight by using a line of code I recently learned about which is case_when!
+
+```{r adding bmi2 column in weight_log, echo=TRUE, eval=TRUE}
+#case_when is an R equivalent of of SQL's CASE WHEN
+#The last TRUE is basically the R equivalent of SQL's ELSE
+
+weight_log <- weight_log %>% 
+  mutate(bmi2 = case_when(
+    bmi > 24.9 ~ 'Overweight',
+    bmi < 18.5 ~ 'Underweight',
+    TRUE ~ 'Healthy'
+  ))
+```
+
+### The Analyze Phase
+
+Before I move onto the phase where I actually start to analyze the dataframe, I need to remove any outliers from the data.
+
+In this case, let's remove rows in which the total_active_hours & calories burned are 0. The reasoning behind this is that I am using data collected from Fitbits, which are wearables. If they don’t wear their smart devices it doesn’t collect information, hence I will remove the clutter from the data frame. Users might have also disabled GPS/accelerometer functions that allow for the collection of steps taken.
+
+```{r removing rows having zero calories burn, echo=TRUE, eval=TRUE}
+# here '!' means is not equals to
+
+daily_activity_cleaned <- daily_activity[!(daily_activity$calories<=0),]
+daily_activity_cleaned <- daily_activity_cleaned[!(daily_activity_cleaned$total_active_hours<=0.00),]
+```
+
+I will be using ggplot for this section of the analysis phase. I will also be including another section in which I used Tableau instead.
+
+As per usual, let's revisit our business task to ensure we are not plotting or trying to hypothesize information/relationships which will not help in solving the business task which are:
+
+* What are some trends in smart device usage?
+* How could these trends apply to Bellabeat customers
+* How could these trends help influence Bellabeat marketing strategy?
+
+After having a brief view of the current data, I will be plotting a few observations revolving around:
+
+* The average: Steps taken, sedentary hours, very active minutes & total hours asleep.
+* Which days are users the most active.
+* The relationship between total active hours, total steps taken, and sedentary hours against calories burned.
+*The relationship between weight, total active hours & steps taken
+*The number of overweight users
+
+Let's have a quick look at the average steps taken, sedentary hours, very active minutes & total hours of sleep using summary().
+
+```{r summary of daily activity and steps, echo=TRUE, eval=TRUE}
+summary(daily_activity_cleaned$total_steps)
+```
+
+```{r summary of daily activity and sedentary, echo=TRUE, eval=TRUE}
+summary(daily_activity_cleaned$sedentary_hours)
+```
+
+```{r summary of daily activity and most active time, echo=TRUE, eval=TRUE}
+summary(daily_activity_cleaned$very_active_minutes)
+```
+
+```{r summary of daily activity and most active time, echo=TRUE, eval=TRUE}
+summary(daily_sleep$hours_asleep)
+```
+
+With a brief view of the outputs above:
+
+* The average number of steps per day were 8319, which is within the 6000–8000 recommended steps per day, however, 25% of people do not hit that recommended quota.
+* The average sedentary hours were 15.87 hours, which is absurdly high, shattering the recommended limit of 7–10 hours
+* The average very active minutes also falls short of the recommended 30 minutes of vigorous exercise every day. Only 25% of people manage to hit this quota
+* The average hours spent asleep (6.9) also barely hits the quota of the recommended sleep time of 7–9 hours
+
+Now let's have a look at which days are users most active
+
+```{r plotting graphs of steps, activity & calories burn , echo=TRUE, eval=TRUE}
+
+#options(scipen=) will remove any scientific annotations
+
+options(scipen = 999)
+ggplot(data = daily_activity_cleaned) +
+  aes(x = day_of_week, y = total_steps) +
+  geom_col(fill =  'blue') +
+  labs(x = 'Day of week', y = 'Total steps', title = 'Totap steps taken in a week')
+ggsave('total_steps.png')
+
+
+ggplot(data = daily_activity_cleaned) +
+  aes(x = day_of_week, y = very_active_minutes) +
+  geom_col(fill =  'red') +
+  labs(x = 'Day of week', y = 'Total very active minutes', title = 'Total activity in a week')
+ggsave('total_activity.png')
+
+
+ggplot(data = daily_activity_cleaned) +
+  aes(x = day_of_week, y = calories) +
+  geom_col(fill =  'brown') +
+  labs(x = 'Day of week', y = 'Calories burned', title = 'Total calories burned in a week')
+ggsave('total_calories.png')
+```
+
+As we can see, the most active days for the Fitbit users were on Sunday, with a slow decline throughout the week. This could be due to motivation levels being fairly high during the end of the week.
+
+Next, let's investigate the relationship between total active hours, total steps taken, and sedentary hours against calories burned by using the following:
+
+```{r plotting graphs of calories burn with activities , echo=TRUE, eval=TRUE}
+#We use geom_smooth() to aid in seeing pattern in the presence of overplotting (when all the plots are too scattered and or too closed)
+
+ggplot(data = daily_activity_cleaned) +
+  aes(x= total_active_hours, y = calories) +
+  geom_point(color = 'red') +
+  geom_smooth() +
+  labs(x = 'Total active hours', y = 'Calories burned', title = 'Calories burned vs active hours')
+ggsave('calories_burned_vs_active_hours.png')
+
+
+ggplot(data = daily_activity_cleaned) +
+  aes(x= total_steps, y = calories) +
+  geom_point(color = 'orange') +
+  geom_smooth() +
+  labs(x = 'Total steps', y = 'Calories burned', title = 'Calories burned vs total steps')
+ggsave('calories_burned_vs_total_steps.png')
+
+
+ggplot(data = daily_activity_cleaned) +
+  aes(x= sedentary_hours, y = calories) +
+  geom_point(color = 'purple') +
+  geom_smooth() +
+  labs(x = 'Sedentary hours', y = 'Calories burned', title = 'Calories burned vs sedentary hours')
+ggsave('sedentary_hours_vs_calories_burned.png')
+```
+
+At a glance, we can tell that there is a positive correlation between calories burned and total steps taken/total active hours. However, in the last chart, we can see that the correlation is confusing.
+
+I was expecting an inverse relationship with the first 2 charts however I was wrong. The relationship between sedentary hours and calories burned was fairly positive up till about the 17-hour mark.
+
+```{r plotting graphs of checking relationships , echo=TRUE, eval=TRUE}
+#Lets merge the tables so we can carry out plotting. I will be ignoring the date issue as for some reason its wiping my dataframe clean even after formatting and renaming.
+activity_weight <- merge(daily_activity_cleaned, weight_log, by=c('id'))
+
+ggplot(data = activity_weight) +
+  aes(x = very_active_minutes, y = weight_kg) +
+  geom_violin(fill = 'blue') +
+  labs(x = 'Very active minutes', y = 'Weight(kg)', title = 'Relationship between weight and physical activity')
+ggsave('weight_physical_activity.png')
+
+ggplot(data = activity_weight) +
+  aes(x = total_steps, y = weight_kg) +
+  geom_violin(fill = 'purple') +
+  labs(x = 'Total steps', y = 'Weight(kg)', title = 'Relationship between weight and physical activity')
+ggsave('weight_physical_activity.png')
+```
+
+From the chart above, we can infer that users weighing around 60kg & 85kg are the most active.
+
+We will carry out descriptive analysis to observe how many overweight & healthy users by using the following
+
+```{r plotting graphs to check overweight users , echo=TRUE, eval=TRUE}
+#The amount of healthy users
+nrow(filter(distinct(weight_log, id, .keep_all = T),bmi2 == 'Healthy'))
+
+#The amount of underweight users
+nrow(filter(distinct(weight_log, id, .keep_all = T),bmi2 == 'Underweight'))
+
+#The amount of overweight users
+nrow(filter(distinct(weight_log, id, .keep_all = T),bmi2 == 'Overweight'))
+
+#For example what .keep_all does, it basically keeps the rest of the rows
+distinct(weight_log, id, .keep_all = T)
+```
+
+Out of the 30 users, only 8 submitted their responses regarding weight. 5 users are overweight and only 3 are within the healthy BMI range of 18.5–24.9
+
+I am Exporting files to visualize at Tableau
+
+```{r plotting graphs to check overweight users , echo=TRUE, eval=TRUE}
+write.csv(daily_activity_cleaned, file ='fitbit_daily_activity.csv')
+write.csv(daily_sleep, file = 'fitbit_sleep_log.csv')
+write.csv(weight_log, file = 'fitbit_weight_log.csv')
+```
+
+### Tableau Visualizations
+
+Here are the visualizations I've made from Tableau. My findings are shown below:
+
+![Distribution of total steps taken](https://github.com/zuhairaslam/Google_Data_Analytics_Capstone_Casestudy2/blob/main/Tableau/Totalsteps_Distribtion.png)
+
+![Distribution of time spent sedentary](https://github.com/zuhairaslam/Google_Data_Analytics_Capstone_Casestudy2/blob/main/Tableau/SedentaryHours_Distribution.png)
+
+![Distribution of time spent engaged in vigorous activity](https://github.com/zuhairaslam/Google_Data_Analytics_Capstone_Casestudy2/blob/main/Tableau/VeryActiveMinutes_Distrbution.png)
+
+![Distribution of time spent asleep](https://github.com/zuhairaslam/Google_Data_Analytics_Capstone_Casestudy2/blob/main/Tableau/Totalsteps_Distribtion.png)
+
+Above are the distributions of the selected variables. As shown:
+
+* The majority of users have taken a total of 5000–10,000 steps with a sharp drop off after that.
+* While a bit confusing with the multiple spikes in recorded counts, most users just simply spend too much time sedentary, mainly 10–21hours.
+* Most users barely exercise as we can see in the huge spike in recorded counts near the 0 on the x-axis. Even then, most users spend about 20 minutes exercising and even see a sharp drop after 70 minutes
+* While the average user gets a good amount of sleep, we have quite a few records in which users only get about 5.5 to barely 7 hours of sleep.
+
+![Total steps taken by weekday](https://github.com/zuhairaslam/Google_Data_Analytics_Capstone_Casestudy2/blob/main/Tableau/TotalSteps_Month.png)
+
+![Total minutes engaged in vigorous activity by weekday](https://github.com/zuhairaslam/Google_Data_Analytics_Capstone_Casestudy2/blob/main/Tableau/TotalIntenseActivity_Month.png)
+
+![Total calories burned by weekday](https://github.com/zuhairaslam/Google_Data_Analytics_Capstone_Casestudy2/blob/main/Tableau/TotalCaloriesBurned_Month.png)
+
+These are the visualizations to find out the activity of users in order to identify which days they spend the most time being active.
+
+Here we can see that they spend a lot of time engaged in physical activity starting from Sunday, which then slowly trails lower and lower. This could be due to the fact that motivation levels were higher on the weekends.
+
+![Relationship between calories burned and minutes engaged in vigorous activity](https://github.com/zuhairaslam/Google_Data_Analytics_Capstone_Casestudy2/blob/main/Tableau/caloriesburned_vs_activehours.png)
+
+![Relationship between calories burned and total steps taken](https://github.com/zuhairaslam/Google_Data_Analytics_Capstone_Casestudy2/blob/main/Tableau/caloriesburned_vs_stepstaken.png)
+
+![Relationship between calories burned and sedentary hours](https://github.com/zuhairaslam/Google_Data_Analytics_Capstone_Casestudy2/blob/main/Tableau/caloeisburned_vs_sedentaryhours.png)
+
+Here I can see a positive trend with the first 2 charts, which indicates that the more time you spend engaged in physical activity, the more calories you tend to burn.
+
+For the last chart, I was expecting an inverse relationship with the first 2 charts. However I was proven wrong, the data speaks for itself.
+
+![Relationship between weight and time spent engaged in vigorous activity
+](https://github.com/zuhairaslam/Google_Data_Analytics_Capstone_Casestudy2/blob/main/Tableau/weight_vs_VigorousActivity.png)
+
+![Relationship between weight and total steps taken
+](https://github.com/zuhairaslam/Google_Data_Analytics_Capstone_Casestudy2/blob/main/Tableau/weight_vs_TotalSteps.png)
+
+As we can see from the 2 charts above, the most active users are within the 50kg–85kg. We also see a sharp decline in activity (physically and in count) for users over 90kg.
+
+![BMI of users](https://github.com/zuhairaslam/Google_Data_Analytics_Capstone_Casestudy2/blob/main/Tableau/BMI_distribution.png)
+
+In the last chart, we have the BMI of users. Out of the 30 users, only 8 submitted their weight records of which 5 of them are overweight and only 3 have a healthy BMI.
+
+### The Act Phase
+
+In the previous section of Analyze & Share, we have covered the 1st and 2nd business task which are:
+
+What are some trends in smart device usage
+How could these trends apply to Bellabeat customers (I believe that displaying the trends would already indicate how Bellabeat customers would follow suit.)
+
+Based on my findings after my analysis, I would like to share my hypothesis on this matter.
+
+* Users spend more time engaged in physical activity specifically on Sundays, which then proceeds to wane throughout the week with a slight peak on Thursdays which then sees a slow climb on Saturdays.
+
+* I suspect that motivation lelvs & free Time are higher on the weekends, which would provide an opportunity for users to sneak in a workout. We see alltime low of recorded activity on Fridays due to the possibility of social engagement with friends/coworkers/family after working hourse
+
+Now to answer the final business task, I would like to share my recommendations based on my findings to help influence Bellabeat’s marketing strategy.
+
+* Bellabeat could host events limited to those that are enrolled in their Bellabeat memberships which would reward users who engage in a healthy lifestyle(IE 8k steps a day, less than 7 hours sedentary etc.) with points. With enough points, users could then use points to purchase products that help supplement a healthy lifestyle.
+
+*Bellabeat could partner with brands (IE wellness, sports, health) to reward users who consistently engage in a healthy lifestyle with coupons/store discounts.
+
+*With the 2 previous points combined, Bellabeat could select previously unhealthy individuals (who are now healthy), interview them and publish motivational videos as to how Bellabeat encouraged them to have a change in lifestyle.
+
+
+Next, I would provide some general recommendations to further improve Bellabeat’s products:
+
+* Bellabeat could implement personalized milestones, to encourage users to slowly engage in a more healthy lifestyle. A simple way of doing this is to create some sort of AI companion on the app/product that would be grumpy/sad if the user does not hit the milestone.
+
+* Bellabeat could implement a simple reminder to inform users that they’ve been sedentary for too long by indefinitely vibrating the device until the device picks up movement/increase in heart rate, which would indicate that they’ve engaged in some sort of physical activity.
+
+Additional remarks:
+
+* Bellabeat should require users to input their height and their activity levels so that BMR calculations and a more accurate calculation of TDEE would be possible. This would aid future analysis as well.
+
+* Bellabeat should create devices that would track sleep more sophisticatedly (IE REM sleep tracking, deep sleep tracking) to provide more insights into sleep health, as in the dataset provided, we only had the quantity of sleep, not the quality of sleep.
